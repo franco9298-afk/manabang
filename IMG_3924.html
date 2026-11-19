@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#1f5d45" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="馬那邦" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<title>馬那邦山珠湖線導覽</title>
+<style>
+:root{color-scheme:light;--bg:#f3f5f1;--card:#fff;--ink:#16201a;--muted:#66736b;--line:#e2e7e2;--pri:#1f5d45;--on-pri:#fff;--pri-soft:#e6f2ec;--acc:#ef7d22;--danger:#b91c1c;--danger-soft:#fdecec;--badge-bg:#fff4e5;--badge-ink:#9a5300}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#0e1411;--card:#18211c;--ink:#e7ece8;--muted:#93a198;--line:#2a362f;--pri:#5fbf8f;--on-pri:#0e1411;--pri-soft:#1c3428;--danger:#f87171;--danger-soft:#3a1717;--badge-bg:#3b2a12;--badge-ink:#f5b56b}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#0e1411;--card:#18211c;--ink:#e7ece8;--muted:#93a198;--line:#2a362f;--pri:#5fbf8f;--on-pri:#0e1411;--pri-soft:#1c3428;--danger:#f87171;--danger-soft:#3a1717;--badge-bg:#3b2a12;--badge-ink:#f5b56b}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",sans-serif;overflow-x:clip;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+button,input,select{font:inherit;color:inherit}
+.hero{background:linear-gradient(180deg,#173f30,#1f5d45);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 0;position:relative}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.hero h1{font-size:1.35rem;line-height:1.15;margin:0}
+.hero .sub{font-size:.82rem;opacity:.8;margin-top:4px}
+.icon-btn{min-width:44px;min-height:44px;border:0;border-radius:12px;background:rgba(255,255,255,.14);color:#fff;font-size:1.1rem;cursor:pointer}
+.icon-btn.sos{background:#d93a2b;font-weight:bold;font-size:.9rem;padding:0 12px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:12px}
+.stat{background:rgba(255,255,255,.1);border-radius:10px;padding:6px 4px;text-align:center}
+.stat b{display:block;font-size:1.05rem;white-space:nowrap}.stat span{font-size:.7rem;opacity:.8}
+.hero svg{display:block;width:100%;height:46px;margin-top:10px}
+main{padding:12px 14px}
+.tab{display:none}.tab.on{display:block}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h2{font-size:1rem;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.btn{min-height:48px;padding:10px 14px;border:0;border-radius:12px;background:var(--pri);color:var(--on-pri);font-weight:600;cursor:pointer;width:100%}
+.btn.on{background:var(--acc);color:#fff}
+.btn.ghost{background:var(--pri-soft);color:var(--ink);font-weight:500}
+.btn.sm{min-height:40px;padding:6px 10px;font-size:.88rem;width:auto}
+.row{display:flex;gap:8px;margin-top:8px}.row>*{flex:1}
+.muted{color:var(--muted);font-size:.82rem}
+.nav-big{display:flex;align-items:center;gap:14px;margin-top:12px}
+.arrow{width:64px;height:64px;flex:none;border-radius:50%;background:var(--pri-soft);display:grid;place-items:center}
+.arrow svg{width:36px;height:36px;transition:transform .4s}
+.dist{font-size:2rem;font-weight:800;line-height:1;color:var(--pri);white-space:nowrap}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.9rem;margin-top:10px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.alert{display:none;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--danger-soft);color:var(--danger);font-weight:600}
+.alert.show{display:block}
+.fig{position:relative;height:190px}.fig svg{position:absolute;inset:0;width:100%;height:100%}
+.wp{display:block;width:100%;text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer}
+.wp.sel{border-color:var(--pri);background:var(--pri-soft)}
+.wp-h{display:flex;justify-content:space-between;gap:8px;font-weight:700}
+.wp-h .n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--pri);color:var(--on-pri);font-size:.8rem;margin-right:6px;flex:none}
+.wp.done .n{background:var(--acc)}
+.badge{font-size:.7rem;font-weight:500;padding:1px 6px;border-radius:6px;background:var(--badge-bg);color:var(--badge-ink);margin-left:6px;white-space:nowrap}
+.wp-m{font-size:.8rem;color:var(--muted);margin-top:4px}
+.wp-n{font-size:.88rem;margin-top:8px}
+#map{height:62vh;min-height:320px;border-radius:12px;overflow:hidden;background:var(--pri-soft)}
+#mapSvg{width:100%;height:62vh;min-height:320px;display:none;border-radius:12px;background:var(--pri-soft)}
+.timer{font-size:2.4rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:7px 4px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+th{color:var(--muted);font-weight:500;font-size:.78rem}
+.late{color:var(--danger)}.early{color:var(--pri)}
+label.f{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+label.f input,label.f select{font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);max-width:52%}
+.gear{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+.gear input{width:22px;height:22px;accent-color:var(--pri);flex:none}
+.gear.ck span{text-decoration:line-through;color:var(--muted)}
+.prog{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0 8px}.prog i{display:block;height:100%;background:var(--pri);transition:width .3s}
+.tabbar{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:1100}
+.tabbar button{border:0;background:none;min-height:60px;font-size:.75rem;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.tabbar button b{font-size:1.25rem;font-weight:normal}
+.tabbar button.on{color:var(--pri);font-weight:700}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:#16201a;color:#fff;padding:10px 16px;border-radius:12px;font-size:.9rem;opacity:0;transition:.25s;z-index:2000;max-width:90vw;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:3000}
+.modal.show{display:flex}
+.sheet{background:var(--card);width:100%;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:85vh;overflow:auto}
+.sheet h3{margin:0 0 10px}
+textarea{width:100%;font-size:15px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);resize:none}
+a{color:var(--pri)}
+.leaflet-container{font:inherit}
+.you-dot{width:18px;height:18px;border-radius:50%;background:var(--acc);border:3px solid #fff;box-shadow:0 0 0 2px rgba(239,125,34,.4)}
+.cp-ic{width:24px;height:24px;border-radius:50%;background:#1f5d45;color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;border:2px solid #fff}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-top">
+    <div>
+      <h1>馬那邦山・珠湖線</h1>
+      <div class="sub">小百岳 #37｜原路往返｜參考軌跡 2026/10/31</div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="icon-btn" id="themeBtn" onclick="cycleTheme()" aria-label="切換深淺色">🌓</button>
+      <button class="icon-btn sos" onclick="openSOS()">SOS</button>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>6.6 km</b><span>來回距離</span></div>
+    <div class="stat"><b>↑495 m</b><span>累計爬升</span></div>
+    <div class="stat"><b>1406 m</b><span>三角點</span></div>
+    <div class="stat"><b id="sunsetStat">--:--</b><span>今日日落</span></div>
+  </div>
+  <svg id="heroSil" viewBox="0 0 400 46" preserveAspectRatio="none" aria-hidden="true"></svg>
+</header>
+
+<main>
+<!-- ===== 導航 ===== -->
+<section class="tab on" id="tab-nav">
+  <div class="card">
+    <button id="gpsBtn" class="btn" onclick="toggleGPS()">📍 開啟即時 GPS 定位</button>
+    <div id="navBox">
+      <div class="muted" style="margin-top:10px" id="gpsHint">需用 https 網址開啟；飛航模式下 GPS 仍可定位。</div>
+    </div>
+    <div id="offRoute" class="alert"></div>
+    <div id="turnAlert" class="alert"></div>
+    <div class="row">
+      <button class="btn ghost sm" onclick="copyLocation()">📋 複製我的座標</button>
+      <button class="btn ghost sm" id="wakeBtn" onclick="toggleWake()">🔆 常亮：關</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>海拔剖面 <span class="muted">上山單程・橘點為你</span></h2>
+    <div class="fig"><svg id="profile"></svg></div>
+  </div>
+
+  <div class="card">
+    <h2>檢查點 <span class="muted">點選設為導航目標</span></h2>
+    <div id="wpList"></div>
+    <div class="muted">標「推估位置」的檢查點是從軌跡推算的，誤差可能有一兩百公尺。走到那裡時點開卡片，按「用目前位置校正」，之後就會以你校正的位置為準。</div>
+  </div>
+</section>
+
+<!-- ===== 地圖 ===== -->
+<section class="tab" id="tab-map">
+  <div class="card" style="padding:8px">
+    <div id="map"></div>
+    <svg id="mapSvg"></svg>
+    <div class="row" style="padding:0 4px 4px">
+      <button class="btn ghost sm" onclick="centerMe()">🎯 回到我的位置</button>
+      <button class="btn ghost sm" onclick="fitRoute()">🗺️ 看整條路線</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>離線地圖</h2>
+    <div class="muted">在山下有網路時按一次，會把路線周邊的地圖圖磚存進手機，山上沒訊號也能看底圖。</div>
+    <div class="row"><button class="btn" id="dlBtn" onclick="prefetchTiles()">⬇️ 下載離線地圖</button></div>
+    <div class="muted" id="dlStatus" style="margin-top:6px"></div>
+  </div>
+</section>
+
+<!-- ===== 行程 ===== -->
+<section class="tab" id="tab-trip">
+  <div class="card">
+    <h2>行程計時 <span class="muted" id="recInfo"></span></h2>
+    <div class="timer" id="timer">00:00:00</div>
+    <div class="row">
+      <button class="btn" id="tripBtn" onclick="toggleTrip()">▶️ 開始登山</button>
+    </div>
+    <div class="muted" style="margin-top:8px">開始後會記錄你的軌跡。開著定位時，走到檢查點約 40 m 內會自動記下抵達時間，也可以在下表手動補記。</div>
+  </div>
+
+  <div class="card">
+    <h2>進度對照 <span class="muted" id="paceTxt"></span></h2>
+    <table>
+      <thead><tr><th>檢查點</th><th>參考</th><th>實際</th><th>差距</th><th></th></tr></thead>
+      <tbody id="splitBody"></tbody>
+    </table>
+    <dl class="kv" id="etaBox"></dl>
+  </div>
+
+  <div class="card">
+    <h2>時間規劃</h2>
+    <label class="f">登山日期 <input type="date" id="tripDate" onchange="saveSettings()"></label>
+    <label class="f">預計起登 <input type="time" id="startTime" value="08:00" onchange="saveSettings()"></label>
+    <label class="f">山頂休息（分） <input type="number" id="restMin" value="30" min="0" max="180" step="5" inputmode="numeric" onchange="saveSettings()"></label>
+    <label class="f">最晚折返時間 <input type="time" id="turnTime" onchange="saveSettings(true)"></label>
+    <dl class="kv" id="planBox"></dl>
+    <div class="muted" style="margin-top:8px">最晚折返時間預設為「日落 − 下山時間 − 30 分鐘緩衝」。林間天色會比日落早暗，請一定帶頭燈。</div>
+  </div>
+
+  <div class="card">
+    <h2>我的軌跡</h2>
+    <div class="muted" id="trackInfo">尚無紀錄</div>
+    <div class="row">
+      <button class="btn ghost sm" onclick="exportGpx()">💾 匯出 GPX</button>
+      <button class="btn ghost sm" onclick="clearRec()">🗑️ 清除紀錄</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>路線資訊</h2>
+    <dl class="kv" style="grid-template-columns:auto 1fr">
+      <dt>停車</dt><dd>登山口私人停車場，約 100 元／次，附廁所</dd>
+      <dt>入山證</dt><dd>不需要</dd>
+      <dt>路況</dt><dd>竹林土徑、石階、樹根，雨後濕滑</dd>
+      <dt>賞楓</dt><dd>紀念碑到石門路段，約 11–12 月</dd>
+    </dl>
+    <div class="row">
+      <a class="btn ghost sm" style="text-align:center;text-decoration:none;display:grid;place-items:center" href="https://www.cwa.gov.tw/V8/C/L/Mountain/Mountain.html" target="_blank" rel="noopener">⛅ 氣象署山區天氣</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 裝備 ===== -->
+<section class="tab" id="tab-gear">
+  <div class="card">
+    <h2>裝備清單 <span class="muted" id="gearCount"></span></h2>
+    <div class="prog"><i id="gearProg"></i></div>
+    <div id="gearList"></div>
+    <div class="row"><button class="btn ghost sm" onclick="resetGear()">↺ 全部取消勾選</button></div>
+  </div>
+  <div class="card">
+    <h2>手動載入其他 GPX</h2>
+    <div class="muted">頁面已內建參考軌跡。想改用別條紀錄時，可以在這裡載入 .gpx，檔案只會存在這支手機上。</div>
+    <div class="row">
+      <button class="btn ghost sm" onclick="document.getElementById('gpxFile').click()">📂 選擇 GPX</button>
+      <button class="btn ghost sm" onclick="clearCustomGpx()">↺ 還原內建軌跡</button>
+    </div>
+    <input id="gpxFile" type="file" hidden onchange="loadGpxFile(this.files[0])" />
+  </div>
+</section>
+</main>
+
+<nav class="tabbar">
+  <button class="on" data-t="nav" onclick="showTab('nav')"><b>🧭</b>導航</button>
+  <button data-t="map" onclick="showTab('map')"><b>🗺️</b>地圖</button>
+  <button data-t="trip" onclick="showTab('trip')"><b>⏱️</b>行程</button>
+  <button data-t="gear" onclick="showTab('gear')"><b>🎒</b>裝備</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal" id="sosModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="sheet">
+    <h3>🆘 緊急求救</h3>
+    <div class="row" style="margin-top:0">
+      <a class="btn" style="background:#d93a2b;text-align:center;text-decoration:none;display:grid;place-items:center" href="tel:112">撥打 112</a>
+      <a class="btn ghost" style="text-align:center;text-decoration:none;display:grid;place-items:center" href="tel:119">撥打 119</a>
+    </div>
+    <p class="muted">112 在沒有 SIM 卡或沒有自家電信訊號時也能撥。接通後先說：馬那邦山珠湖線、目前座標、人數與傷勢。</p>
+    <textarea id="sosText" rows="5" readonly></textarea>
+    <div class="row"><button class="btn ghost" onclick="copyLocation(true)">📋 複製求救訊息</button></div>
+    <div class="row"><button class="btn ghost" onclick="document.getElementById('sosModal').classList.remove('show')">關閉</button></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+{
+// ================= 資料 =================
+const TRK = {"asc":[[24.380121,120.912473,908,0.0],[24.380072,120.9124,909,0.02],[24.380014,120.912417,910,0.035],[24.380086,120.912405,911,0.051],[24.380084,120.91252,911,0.066],[24.380005,120.912446,912,0.083],[24.37999,120.91228,912,0.101],[24.380006,120.912271,913,0.116],[24.379948,120.912134,913,0.131],[24.379993,120.912022,913,0.147],[24.379998,120.911884,913,0.165],[24.379929,120.91176,913,0.18],[24.379744,120.912179,914,0.233],[24.379899,120.9118,914,0.275],[24.379944,120.911684,914,0.29],[24.380008,120.911854,914,0.311],[24.379955,120.912028,914,0.33],[24.379989,120.912198,915,0.348],[24.379875,120.912106,917,0.366],[24.379753,120.912005,918,0.383],[24.379613,120.911907,920,0.401],[24.379624,120.911804,922,0.416],[24.379622,120.911619,924,0.435],[24.379621,120.91147,927,0.454],[24.379719,120.911354,928,0.471],[24.37981,120.911249,931,0.491],[24.379787,120.911062,932,0.51],[24.379739,120.910935,934,0.527],[24.379601,120.910833,936,0.546],[24.379532,120.910723,938,0.561],[24.379487,120.910582,940,0.578],[24.379553,120.910492,943,0.595],[24.379584,120.91033,945,0.612],[24.379582,120.910223,946,0.628],[24.379565,120.910109,948,0.645],[24.379525,120.910049,952,0.66],[24.379438,120.910173,955,0.676],[24.379308,120.910278,958,0.694],[24.379164,120.910323,961,0.711],[24.379082,120.910377,963,0.727],[24.378948,120.91043,966,0.745],[24.378819,120.910487,969,0.76],[24.378703,120.910523,971,0.776],[24.378632,120.910423,975,0.791],[24.37856,120.910337,982,0.807],[24.378541,120.91021,989,0.823],[24.378566,120.910171,993,0.841],[24.378632,120.910038,994,0.857],[24.378699,120.909939,996,0.876],[24.378793,120.909834,998,0.892],[24.378798,120.909704,1001,0.908],[24.37885,120.909608,1007,0.926],[24.378968,120.909534,1012,0.944],[24.379088,120.909429,1014,0.961],[24.37914,120.909435,1014,0.98],[24.379245,120.909355,1013,0.996],[24.3794,120.909327,1012,1.014],[24.379471,120.909228,1013,1.029],[24.379579,120.909127,1016,1.045],[24.379635,120.908955,1021,1.064],[24.379599,120.908795,1022,1.081],[24.379559,120.908679,1023,1.096],[24.379505,120.908635,1024,1.113],[24.379381,120.908665,1026,1.131],[24.379243,120.908744,1029,1.149],[24.379117,120.90882,1031,1.165],[24.378997,120.908785,1034,1.18],[24.378925,120.908903,1037,1.197],[24.378816,120.909015,1041,1.214],[24.378695,120.909114,1044,1.231],[24.378572,120.909168,1046,1.246],[24.378524,120.909283,1049,1.261],[24.3784,120.909361,1051,1.277],[24.37828,120.909444,1054,1.294],[24.378192,120.909572,1056,1.31],[24.378106,120.909703,1060,1.327],[24.378018,120.909817,1063,1.342],[24.377934,120.909933,1066,1.358],[24.377847,120.910077,1070,1.375],[24.377839,120.910103,1077,1.39],[24.377789,120.910191,1079,1.407],[24.377671,120.910305,1083,1.425],[24.377529,120.910373,1085,1.443],[24.377403,120.910472,1088,1.46],[24.377297,120.910552,1091,1.476],[24.377205,120.910645,1099,1.491],[24.377163,120.91076,1105,1.506],[24.377055,120.910871,1111,1.524],[24.376984,120.911022,1115,1.542],[24.376975,120.911003,1116,1.558],[24.376925,120.911008,1116,1.573],[24.376791,120.911088,1119,1.591],[24.376733,120.911199,1123,1.606],[24.376595,120.911256,1125,1.623],[24.376446,120.911333,1128,1.642],[24.376309,120.911404,1132,1.659],[24.376163,120.911432,1137,1.676],[24.376142,120.91149,1142,1.693],[24.376086,120.911583,1145,1.709],[24.376114,120.911665,1151,1.725],[24.376088,120.911758,1153,1.741],[24.376007,120.911806,1155,1.758],[24.375896,120.911842,1158,1.775],[24.375871,120.911931,1162,1.793],[24.375863,120.912032,1165,1.811],[24.37575,120.912135,1168,1.828],[24.375623,120.912212,1170,1.845],[24.375598,120.912286,1173,1.86],[24.37548,120.912303,1174,1.876],[24.375424,120.912351,1177,1.891],[24.375314,120.912407,1180,1.907],[24.375221,120.912489,1181,1.925],[24.3751,120.912496,1182,1.94],[24.375009,120.912475,1183,1.956],[24.374916,120.912415,1185,1.974],[24.374852,120.912413,1188,1.991],[24.374778,120.912538,1192,2.008],[24.374709,120.912649,1196,2.023],[24.374668,120.912544,1199,2.039],[24.374669,120.91266,1201,2.055],[24.374643,120.912747,1205,2.07],[24.374588,120.912769,1209,2.086],[24.374559,120.912863,1212,2.102],[24.374497,120.912958,1216,2.117],[24.374511,120.913015,1218,2.134],[24.374409,120.913115,1223,2.153],[24.374398,120.913102,1228,2.17],[24.37441,120.913088,1227,2.185],[24.374424,120.913096,1226,2.201],[24.374423,120.913116,1227,2.217],[24.374433,120.913066,1229,2.233],[24.374388,120.913183,1229,2.248],[24.374327,120.913136,1230,2.269],[24.374312,120.913191,1234,2.285],[24.37427,120.913316,1237,2.302],[24.374197,120.913393,1241,2.319],[24.374049,120.913453,1244,2.336],[24.373904,120.913479,1249,2.354],[24.37377,120.913569,1251,2.372],[24.373632,120.913507,1253,2.389],[24.373531,120.913539,1256,2.405],[24.373504,120.913526,1255,2.425],[24.373343,120.913555,1255,2.445],[24.373218,120.913593,1256,2.461],[24.373098,120.913574,1257,2.477],[24.372965,120.913513,1259,2.494],[24.372823,120.913493,1260,2.51],[24.372663,120.913519,1262,2.528],[24.372504,120.91355,1263,2.546],[24.372348,120.913567,1265,2.563],[24.372185,120.913577,1267,2.581],[24.372028,120.913596,1268,2.599],[24.371867,120.91364,1271,2.618],[24.371742,120.913672,1275,2.634],[24.371601,120.913692,1279,2.65],[24.371441,120.913692,1282,2.668],[24.371304,120.913678,1283,2.684],[24.371147,120.913646,1283,2.702],[24.371009,120.913627,1283,2.717],[24.370862,120.913601,1281,2.734],[24.370805,120.913597,1279,2.749],[24.370677,120.9136,1278,2.764],[24.370552,120.913567,1279,2.781],[24.370433,120.913641,1279,2.797],[24.37032,120.913676,1282,2.812],[24.370164,120.913756,1285,2.831],[24.370021,120.913821,1293,2.849],[24.369877,120.913874,1300,2.866],[24.369745,120.91392,1303,2.882],[24.369751,120.913917,1307,2.902],[24.369599,120.913943,1309,2.919],[24.369476,120.913993,1312,2.934],[24.369449,120.913934,1315,2.95],[24.369349,120.914002,1317,2.968],[24.369204,120.914047,1320,2.985],[24.369088,120.914009,1324,3.0],[24.368947,120.914022,1327,3.016],[24.368795,120.914045,1332,3.035],[24.368637,120.914071,1337,3.053],[24.3685,120.914095,1342,3.068],[24.368368,120.914087,1346,3.084],[24.368327,120.91405,1351,3.099],[24.368196,120.914105,1356,3.117],[24.368106,120.913994,1363,3.134],[24.36802,120.9139,1372,3.153],[24.367904,120.913846,1377,3.169],[24.367913,120.913733,1380,3.184],[24.367952,120.913604,1384,3.199],[24.367893,120.913589,1390,3.215],[24.367811,120.913657,1396,3.232],[24.367658,120.913694,1400,3.25],[24.367616,120.913712,1400,3.255]],"full":[[24.380121,120.912473],[24.380091,120.912358],[24.380061,120.912397],[24.380084,120.91252],[24.380015,120.912369],[24.380006,120.912271],[24.379952,120.912087],[24.379992,120.911947],[24.379929,120.91176],[24.379744,120.912179],[24.379899,120.9118],[24.380007,120.911727],[24.379981,120.911939],[24.379979,120.912164],[24.379875,120.912106],[24.379722,120.911981],[24.379577,120.911871],[24.379625,120.911694],[24.379614,120.911517],[24.379719,120.911354],[24.379804,120.911195],[24.379793,120.910977],[24.379624,120.910868],[24.379504,120.910701],[24.379551,120.910548],[24.379584,120.91033],[24.379578,120.910217],[24.379577,120.910023],[24.379438,120.910173],[24.37928,120.910287],[24.37912,120.910326],[24.37898,120.910431],[24.378807,120.910482],[24.37867,120.910482],[24.378553,120.910379],[24.378541,120.91021],[24.378577,120.910141],[24.378667,120.910015],[24.378756,120.909874],[24.378798,120.909704],[24.378854,120.90961],[24.379,120.909498],[24.37915,120.909434],[24.379203,120.909359],[24.3794,120.909327],[24.379519,120.90917],[24.379632,120.908996],[24.379599,120.908795],[24.379598,120.908675],[24.379444,120.908654],[24.379281,120.908723],[24.379117,120.90882],[24.378962,120.908819],[24.378851,120.90898],[24.378695,120.909114],[24.37852,120.909214],[24.378416,120.909353],[24.378261,120.909468],[24.378157,120.90964],[24.378038,120.909803],[24.377922,120.909952],[24.377859,120.910066],[24.377821,120.910157],[24.377671,120.910305],[24.377502,120.910393],[24.377352,120.910506],[24.377225,120.91063],[24.377161,120.910784],[24.377042,120.910917],[24.376996,120.911007],[24.376959,120.911018],[24.376791,120.911088],[24.37667,120.911237],[24.376489,120.91133],[24.376309,120.911404],[24.376135,120.911449],[24.376072,120.91153],[24.376099,120.911663],[24.376116,120.911775],[24.375951,120.91184],[24.37582,120.911898],[24.375897,120.912019],[24.37575,120.912135],[24.375601,120.912242],[24.375528,120.912324],[24.375431,120.912344],[24.375313,120.912462],[24.375134,120.912519],[24.375009,120.912475],[24.374877,120.912436],[24.374778,120.912491],[24.374709,120.912649],[24.37468,120.912606],[24.37463,120.912717],[24.374588,120.912769],[24.374548,120.912915],[24.374492,120.913041],[24.374409,120.913115],[24.374427,120.913111],[24.374423,120.913074],[24.374429,120.913106],[24.374444,120.913084],[24.374415,120.913132],[24.374255,120.913196],[24.374282,120.913295],[24.374171,120.913396],[24.373995,120.913475],[24.373813,120.913538],[24.373632,120.913507],[24.3735,120.913525],[24.373441,120.913542],[24.373257,120.913558],[24.373098,120.913574],[24.372913,120.913512],[24.372701,120.91351],[24.372504,120.91355],[24.372295,120.91357],[24.372094,120.91358],[24.371905,120.913643],[24.371714,120.913672],[24.37152,120.913713],[24.371304,120.913678],[24.3711,120.91364],[24.370894,120.913601],[24.370774,120.9136],[24.370619,120.913591],[24.370433,120.913641],[24.370271,120.913698],[24.370077,120.913796],[24.369904,120.913867],[24.369735,120.913922],[24.369692,120.91392],[24.369515,120.913983],[24.369449,120.913934],[24.369314,120.914006],[24.369146,120.914006],[24.368947,120.914022],[24.368763,120.91405],[24.368578,120.914081],[24.368394,120.914074],[24.368307,120.914079],[24.368152,120.914035],[24.368031,120.91391],[24.367904,120.913846],[24.36794,120.9137],[24.367918,120.913556],[24.367811,120.913657],[24.367616,120.913712],[24.367437,120.91377],[24.367233,120.913685],[24.367203,120.913685],[24.367262,120.91382],[24.367302,120.913827],[24.367255,120.91383],[24.367265,120.913819],[24.36732,120.913776],[24.367298,120.913833],[24.367259,120.913806],[24.367218,120.91378],[24.36709,120.913672],[24.367264,120.913692],[24.36746,120.91374],[24.367649,120.913666],[24.36784,120.913645],[24.367943,120.913559],[24.367961,120.913671],[24.367948,120.913777],[24.367958,120.913866],[24.367983,120.913869],[24.368101,120.91399],[24.368261,120.914056],[24.368333,120.91407],[24.36852,120.914063],[24.368661,120.914058],[24.368868,120.914036],[24.369031,120.914023],[24.369232,120.914014],[24.369418,120.913971],[24.36955,120.913943],[24.369724,120.913906],[24.369896,120.913847],[24.370054,120.913769],[24.370218,120.91372],[24.370321,120.913676],[24.370416,120.913652],[24.370548,120.913582],[24.37068,120.91359],[24.370858,120.913617],[24.370984,120.913622],[24.371169,120.913646],[24.371385,120.913679],[24.371566,120.913699],[24.371727,120.913656],[24.371866,120.913596],[24.372027,120.913578],[24.372245,120.913584],[24.372468,120.913538],[24.372685,120.913502],[24.372917,120.913505],[24.373116,120.91356],[24.373284,120.913586],[24.373483,120.913538],[24.373644,120.913515],[24.373835,120.913539],[24.373994,120.913451],[24.374114,120.9134],[24.374244,120.913295],[24.374268,120.913151],[24.374385,120.913114],[24.37437,120.913128],[24.374507,120.913075],[24.374493,120.912993],[24.374517,120.912892],[24.374632,120.912838],[24.374582,120.912758],[24.374656,120.9126],[24.374784,120.912513],[24.374817,120.9125],[24.374927,120.912444],[24.375086,120.912472],[24.375316,120.912479],[24.375395,120.912398],[24.375438,120.912299],[24.375556,120.912322],[24.375637,120.912182],[24.375812,120.912124],[24.3759,120.911984],[24.375899,120.91194],[24.37593,120.911808],[24.375945,120.911826],[24.376047,120.911736],[24.376073,120.91166],[24.376067,120.911586],[24.376098,120.911528],[24.376111,120.911507],[24.376182,120.911421],[24.376329,120.911404],[24.376475,120.911325],[24.376565,120.911304],[24.376729,120.911187],[24.376844,120.911025],[24.376989,120.91103],[24.377087,120.910877],[24.377159,120.910734],[24.377136,120.910676],[24.377254,120.910617],[24.377322,120.910575],[24.377431,120.910458],[24.377601,120.91041],[24.377755,120.910276],[24.377867,120.910105],[24.377893,120.910104],[24.377952,120.909906],[24.378097,120.909812],[24.378214,120.909624],[24.378341,120.90945],[24.378499,120.909297],[24.378653,120.909169],[24.378807,120.909034],[24.378941,120.908894],[24.379112,120.908774],[24.379284,120.908689],[24.37953,120.908622],[24.379656,120.908769],[24.379679,120.90886],[24.379684,120.908886],[24.379649,120.908989],[24.379604,120.909165],[24.379473,120.90927],[24.379389,120.909332],[24.379228,120.909428],[24.379046,120.909505],[24.378902,120.909637],[24.378829,120.909756],[24.378799,120.909912],[24.37868,120.910071],[24.378628,120.91022],[24.378617,120.910374],[24.378699,120.910461],[24.378811,120.910541],[24.378964,120.910451],[24.379104,120.910428],[24.379197,120.91032],[24.379377,120.910261],[24.379525,120.910109],[24.379637,120.910195],[24.379636,120.91041],[24.379576,120.910616],[24.379529,120.910683],[24.37952,120.910729],[24.379673,120.910881],[24.379827,120.911003],[24.379858,120.911198],[24.379783,120.911384],[24.379663,120.91156],[24.379656,120.911621],[24.379642,120.911858],[24.379742,120.91198],[24.379898,120.912091],[24.38001,120.91222]]};   // asc: [lat,lng,ele,km] 上山段；full: [lat,lng] 完整來回
+const REF_DESCENT = 100; // 參考軌跡下山分鐘
+const CP0 = [
+  { id:"start", name:"珠湖登山口（停車場）", lat:24.380121, lng:120.912473, ele:906,  km:0,    min:0,   est:false, note:"私人停車場，約 100 元／次，附廁所。沿產業道路往上，照指標進竹林步道。" },
+  { id:"hut",   name:"工寮／細道邦山叉路",   lat:24.379505, lng:120.908635, ele:1024, km:1.11, min:32,  est:true,  note:"沿途唯一有遮蔽的工寮，後方有明顯三岔指標：往馬那邦山，別走往細道邦山。" },
+  { id:"mem",   name:"古戰場紀念碑",         lat:24.377085, lng:120.910848, ele:1111, km:1.52, min:48,  est:true,  note:"泰雅族抗日古戰場紀念碑。紀念碑到石門是秋冬賞楓最精華的一段。" },
+  { id:"gate",  name:"石門",                 lat:24.374485, lng:120.913038, ele:1218, km:2.13, min:73,  est:true,  note:"天然岩石隘口，熱門拍照點。過了石門離山頂就不遠，石階濕滑注意腳步。" },
+  { id:"top",   name:"馬那邦山三角點",       lat:24.367616, lng:120.913712, ele:1406, km:3.26, min:112, est:false, note:"展望平台，風大注意保暖。原路折返，參考下山約 100 分鐘。" },
+];
+const GEAR = [
+  ["必備","頭燈（含備用電池）"],["必備","雨衣或防水外套"],["必備","保暖層（山頂風大）"],["必備","飲水 1.5 L 以上"],
+  ["必備","行動糧／午餐"],["必備","手機＋行動電源"],["必備","急救包、個人藥品"],["必備","健保卡、證件"],
+  ["必備","零錢（停車費）"],["建議","登山杖"],["建議","抓地力好的鞋"],["建議","手套"],["建議","帽子、防曬"],
+  ["建議","防蚊液"],["建議","垃圾袋"],["建議","備用襪子"],["建議","哨子"],
+];
+
+// ================= 狀態 =================
+const ls = { get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch(e){return d;} },
+             set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+let cal = ls.get("mnb_cal", {});           // 校正後座標 {id:{lat,lng}}
+let custom = ls.get("mnb_custom", null);    // 自訂 GPX {asc,full}
+let trip = ls.get("mnb_trip", null);        // {start:ms, end:ms|null, arr:{id:ms}, back:ms|null}
+let rec = ls.get("mnb_rec", []);            // [[lat,lng,ele|null,ms]]
+let gearCk = ls.get("mnb_gear", {});
+let settings = ls.get("mnb_set", {});
+let selIdx = 0, watchId = null, wakeLock = null, wakeWanted = false, lastFix = null, lastSnap = null;
+let map = null, youMk = null, accCircle = null, cpMarkers = [];
+
+const T = () => custom || TRK;
+const CP = () => CP0.map(c => cal[c.id] ? { ...c, lat: cal[c.id].lat, lng: cal[c.id].lng, est: false, calibrated: true } : c);
+const $ = id => document.getElementById(id);
+
+// ================= 工具 =================
+const rad = d => d*Math.PI/180;
+function hav(a1,o1,a2,o2){ const dA=rad(a2-a1),dO=rad(o2-o1); const h=Math.sin(dA/2)**2+Math.cos(rad(a1))*Math.cos(rad(a2))*Math.sin(dO/2)**2; return 12742000*Math.atan2(Math.sqrt(h),Math.sqrt(1-h)); }
+function bearing(a1,o1,a2,o2){ const y=Math.sin(rad(o2-o1))*Math.cos(rad(a2)); const x=Math.cos(rad(a1))*Math.sin(rad(a2))-Math.sin(rad(a1))*Math.cos(rad(a2))*Math.cos(rad(o2-o1)); return (Math.atan2(y,x)*180/Math.PI+360)%360; }
+const DIRS=["北","東北","東","東南","南","西南","西","西北"];
+const dirText = b => DIRS[Math.round(b/45)%8];
+const fmtD = m => m>=1000 ? (m/1000).toFixed(2)+" km" : Math.round(m)+" m";
+const pad = n => String(n).padStart(2,"0");
+const hhmm = d => d ? pad(d.getHours())+":"+pad(d.getMinutes()) : "--:--";
+const fmtDur = ms => { const s=Math.max(0,Math.floor(ms/1000)); return pad(Math.floor(s/3600))+":"+pad(Math.floor(s%3600/60))+":"+pad(s%60); };
+const fmtMin = m => { m=Math.round(m); const a=Math.abs(m); return (m<0?"-":"")+(a>=60? Math.floor(a/60)+"時"+pad(a%60)+"分" : a+"分"); };
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2800); }
+function buzz(p){ try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} }
+
+// 投影到折線：回傳 {km, ele, off}
+function snap(line, lat, lng){
+  const cosL=Math.cos(rad(lat)), xy=p=>[(p[1]-lng)*cosL*111320,(p[0]-lat)*110540];
+  let best={off:Infinity,km:0,ele:line[0][2]||0};
+  for(let i=0;i<line.length-1;i++){
+    const [ax,ay]=xy(line[i]),[bx,by]=xy(line[i+1]),dx=bx-ax,dy=by-ay,L2=dx*dx+dy*dy;
+    let t=L2? -(ax*dx+ay*dy)/L2 : 0; t=Math.max(0,Math.min(1,t));
+    const off=Math.hypot(ax+t*dx,ay+t*dy);
+    if(off<best.off){ const a=line[i],b=line[i+1]; best={off, km:(a[3]??0)+t*((b[3]??0)-(a[3]??0)), ele:(a[2]??0)+t*((b[2]??0)-(a[2]??0))}; }
+  }
+  return best;
+}
+const cpKm = c => snap(T().asc, c.lat, c.lng).km;
+
+// ================= 日落 =================
+function sunTimes(date, lat, lng){
+  const y=date.getFullYear(), start=Date.UTC(y,0,0), doy=Math.floor((Date.UTC(y,date.getMonth(),date.getDate())-start)/864e5);
+  const g=2*Math.PI/365*(doy-1);
+  const eq=229.18*(0.000075+0.001868*Math.cos(g)-0.032077*Math.sin(g)-0.014615*Math.cos(2*g)-0.040849*Math.sin(2*g));
+  const dec=0.006918-0.399912*Math.cos(g)+0.070257*Math.sin(g)-0.006758*Math.cos(2*g)+0.000907*Math.sin(2*g)-0.002697*Math.cos(3*g)+0.00148*Math.sin(3*g);
+  const ha=Math.acos(Math.cos(rad(90.833))/(Math.cos(rad(lat))*Math.cos(dec))-Math.tan(rad(lat))*Math.tan(dec))*180/Math.PI;
+  const mk = utcMin => { const d=new Date(Date.UTC(y,date.getMonth(),date.getDate(),0,0)); d.setUTCMinutes(Math.round(utcMin)); return d; };
+  return { rise: mk(720-4*(lng+ha)-eq), set: mk(720-4*(lng-ha)-eq) };
+}
+
+// ================= 主題 =================
+function applyTheme(){ const t=settings.theme||""; if(t) document.documentElement.dataset.theme=t; else delete document.documentElement.dataset.theme; $("themeBtn").textContent = t==="dark"?"🌙":t==="light"?"☀️":"🌓"; }
+window.cycleTheme = () => { settings.theme = ({"":"dark",dark:"light",light:""})[settings.theme||""]; ls.set("mnb_set",settings); applyTheme(); drawProfile(); if(!map) drawMapSvg(); };
+
+// ================= 分頁 =================
+window.showTab = t => {
+  document.querySelectorAll(".tab").forEach(s=>s.classList.toggle("on", s.id==="tab-"+t));
+  document.querySelectorAll(".tabbar button").forEach(b=>b.classList.toggle("on", b.dataset.t===t));
+  if(t==="map") initMap();
+  if(t==="trip") renderTrip();
+  window.scrollTo(0,0);
+};
+
+// ================= 剖面圖 =================
+function profileSvg(svg, you){
+  const W=svg.clientWidth||340, H=svg.clientHeight||190, L=36, R=10, Tp=18, B=22;
+  const a=T().asc, maxKm=a[a.length-1][3]||1, eles=a.map(p=>p[2]);
+  const lo=Math.floor((Math.min(...eles)-30)/100)*100, hi=Math.ceil((Math.max(...eles)+40)/100)*100;
+  const X=k=>L+k/maxKm*(W-L-R), Y=e=>Tp+(hi-e)/(hi-lo)*(H-Tp-B);
+  const pts=a.map(p=>X(p[3]).toFixed(1)+","+Y(p[2]).toFixed(1)).join(" ");
+  let g="";
+  for(let e=lo;e<=hi;e+=100){ g+=`<line x1="${L}" x2="${W-R}" y1="${Y(e)}" y2="${Y(e)}" style="stroke:var(--line)"/><text x="${L-4}" y="${Y(e)+4}" font-size="10" text-anchor="end" style="fill:var(--muted)">${e}</text>`; }
+  for(let k=0;k<=maxKm+1e-6;k+=0.5) g+=`<text x="${X(k)}" y="${H-6}" font-size="10" text-anchor="middle" style="fill:var(--muted)">${k}</text>`;
+  g+=`<polygon points="${X(0)},${Y(lo)} ${pts} ${X(maxKm)},${Y(lo)}" style="fill:var(--pri)" fill-opacity=".15"/><polyline points="${pts}" fill="none" style="stroke:var(--pri)" stroke-width="2.2" stroke-linejoin="round"/>`;
+  CP().forEach((c,i)=>{
+    const s=snap(a,c.lat,c.lng), x=X(s.km), y=Y(s.ele), sel=i===selIdx, done=trip&&trip.arr&&trip.arr[c.id];
+    g+=`<circle cx="${x}" cy="${y}" r="${sel?7:5}" style="fill:${done?'#ef7d22':sel?'var(--pri)':'var(--card)'};stroke:${done?'#ef7d22':'var(--pri)'}" stroke-width="2"/><text x="${x}" y="${y-10}" font-size="11" font-weight="700" text-anchor="middle" style="fill:var(--ink)">${i+1}</text>`;
+  });
+  if(you){ g+=`<line x1="${X(you.km)}" x2="${X(you.km)}" y1="${Tp}" y2="${H-B}" stroke="#ef7d22" stroke-dasharray="3 3"/><circle cx="${X(you.km)}" cy="${Y(you.ele)}" r="7" fill="#ef7d22" stroke="#fff" stroke-width="2.5"/>`; }
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.style.color="var(--ink)"; svg.innerHTML=g;
+}
+function drawProfile(){ profileSvg($("profile"), lastSnap); }
+function drawHero(){
+  const a=T().asc, maxKm=a[a.length-1][3], e=a.map(p=>p[2]), lo=Math.min(...e), hi=Math.max(...e);
+  const up=a.filter((_,i)=>i%2===0), yv=p=>(44-(p[2]-lo)/(hi-lo)*38).toFixed(1);
+  const pts=up.map(p=>`${(p[3]/maxKm*200).toFixed(1)},${yv(p)}`).concat(up.slice().reverse().map(p=>`${(400-p[3]/maxKm*200).toFixed(1)},${yv(p)}`)).join(" ");
+  $("heroSil").innerHTML=`<polygon points="0,46 ${pts} 400,46" style="fill:var(--bg)"/>`;
+}
+
+// ================= 檢查點 =================
+function renderList(){
+  $("wpList").innerHTML = CP().map((c,i)=>{
+    const done=trip&&trip.arr&&trip.arr[c.id];
+    return `<button class="wp ${i===selIdx?'sel':''} ${done?'done':''}" onclick="selectWp(${i})">
+      <div class="wp-h"><span style="display:flex;align-items:center"><span class="n">${i+1}</span>${c.name}${c.est?'<span class="badge">推估位置</span>':''}${c.calibrated?'<span class="badge">已校正</span>':''}</span><span>${c.ele} m</span></div>
+      <div class="wp-m">單程 ${c.km} km｜參考 ${c.min} 分${done?'｜✅ '+hhmm(new Date(done)):''}</div>
+      ${i===selIdx?`<div class="wp-n">💡 ${c.note}</div>
+        <div class="row"><span class="btn ghost sm" role="button" onclick="event.stopPropagation();calibrate(${i})">📌 用目前位置校正</span>${cal[c.id]?`<span class="btn ghost sm" role="button" onclick="event.stopPropagation();uncalibrate(${i})">↺ 取消校正</span>`:''}</div>`:''}
+    </button>`;}).join("");
+}
+window.selectWp = i => { selIdx=i; renderList(); refreshNav(); drawProfile(); updateMapMarkers(); };
+window.calibrate = i => {
+  if(!lastFix || Date.now()-lastFix.timestamp>60000){ toast("請先開啟 GPS，等定位穩定後再校正"); return; }
+  const {latitude:la,longitude:lo,accuracy}=lastFix.coords;
+  cal[CP0[i].id]={lat:la,lng:lo}; ls.set("mnb_cal",cal);
+  toast(`已校正「${CP0[i].name}」（誤差 ±${Math.round(accuracy)} m）`); renderList(); drawProfile(); updateMapMarkers();
+};
+window.uncalibrate = i => { delete cal[CP0[i].id]; ls.set("mnb_cal",cal); renderList(); drawProfile(); updateMapMarkers(); };
+
+// ================= GPS =================
+window.toggleGPS = () => {
+  const btn=$("gpsBtn");
+  if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; btn.textContent="📍 開啟即時 GPS 定位"; btn.classList.remove("on"); $("offRoute").classList.remove("show"); toast("已停止定位"); return; }
+  if(!("geolocation" in navigator)){ toast("此瀏覽器不支援定位"); return; }
+  if(location.protocol!=="https:" && location.hostname!=="localhost") $("gpsHint").textContent="⚠️ 目前不是 https 網址，瀏覽器可能會封鎖定位。";
+  btn.textContent="🛰️ 定位中（點擊停止）"; btn.classList.add("on");
+  $("gpsHint") && ($("gpsHint").textContent="搜尋衛星中…山谷或密林可能要 1～2 分鐘");
+  watchId=navigator.geolocation.watchPosition(onFix, err=>{
+    const m={1:"未允許位置權限，請到瀏覽器／系統設定開啟。",2:"暫時無法取得位置，請移到較開闊處。",3:"定位逾時，持續嘗試中…"}[err.code]||err.message;
+    $("navBox").innerHTML=`<div class="muted" style="margin-top:10px">定位失敗：${m}</div>`;
+  },{enableHighAccuracy:true,maximumAge:3000,timeout:30000});
+};
+
+function onFix(pos){
+  lastFix=pos;
+  const {latitude:la,longitude:lo,altitude,accuracy}=pos.coords;
+  lastSnap=snap(T().asc,la,lo);
+  refreshNav(); drawProfile(); updateMapYou();
+
+  // 偏離路線（對照完整來回軌跡）
+  const off=snap(T().full.map(p=>[p[0],p[1],0,0]),la,lo).off, a=$("offRoute");
+  if(off>Math.max(60,accuracy*1.5)){ if(!a.classList.contains("show")) buzz([300,150,300]); a.textContent=`⚠️ 可能偏離路線：距軌跡約 ${Math.round(off)} m，請停下確認方向。`; a.classList.add("show"); }
+  else a.classList.remove("show");
+
+  // 行程中：記錄軌跡＋自動打卡
+  if(trip && !trip.end){
+    const last=rec[rec.length-1];
+    if(!last || hav(last[0],last[1],la,lo)>=8 || pos.timestamp-last[3]>60000){
+      rec.push([+la.toFixed(6),+lo.toFixed(6),altitude!=null?Math.round(altitude):null,pos.timestamp]); ls.set("mnb_rec",rec);
+    }
+    const thr=Math.max(40,Math.min(accuracy,80));
+    CP().forEach(c=>{
+      if(c.id==="start") return;
+      if(!trip.arr[c.id] && hav(la,lo,c.lat,c.lng)<thr){ trip.arr[c.id]=pos.timestamp; saveTrip(); buzz(200); toast(`✅ 抵達「${c.name}」`); renderList(); }
+    });
+    if(trip.arr.top && !trip.back && hav(la,lo,CP0[0].lat,CP0[0].lng)<thr){ trip.back=pos.timestamp; saveTrip(); buzz([200,100,200]); toast("🎉 回到登山口，辛苦了！"); }
+  }
+  checkTurnaround();
+}
+
+function refreshNav(){
+  if(!lastFix){ return; }
+  const {latitude:la,longitude:lo,altitude,accuracy}=lastFix.coords;
+  const t=CP()[selIdx], d=hav(la,lo,t.lat,t.lng), b=bearing(la,lo,t.lat,t.lng);
+  const topKm=cpKm(CP()[4]), s=lastSnap;
+  const remain = s && s.km<topKm ? `${fmtD((topKm-s.km)*1000)}・爬升約 ${Math.max(0,Math.round(1406-s.ele))} m` : "已在山頂或折返段";
+  $("navBox").innerHTML=`
+    <div class="nav-big">
+      <div class="arrow"><svg viewBox="0 0 24 24" style="transform:rotate(${b}deg)"><path d="M12 2l6 18-6-4-6 4z" fill="#ef7d22"/></svg></div>
+      <div><div class="muted">到「${t.name}」直線距離</div><div class="dist">${fmtD(d)}</div><div class="muted">往${dirText(b)}方（${Math.round(b)}°，箭頭以正北為上）</div></div>
+    </div>
+    <dl class="kv">
+      <dt>沿路線位置</dt><dd>單程約 ${s.km.toFixed(2)} km</dd>
+      <dt>距三角點</dt><dd>${remain}</dd>
+      <dt>GPS 海拔</dt><dd>${altitude!=null?Math.round(altitude)+" m":"無資料"}<span class="muted">（誤差常 ±10～30 m）</span></dd>
+      <dt>座標</dt><dd>${la.toFixed(5)}, ${lo.toFixed(5)}</dd>
+      <dt>精度／更新</dt><dd>±${Math.round(accuracy)} m・${new Date(lastFix.timestamp).toLocaleTimeString("zh-TW",{hour12:false})}</dd>
+    </dl>`;
+}
+
+// ================= 折返提醒 =================
+function turnDeadline(){
+  const v=$("turnTime").value; if(!v) return null;
+  const base = trip ? new Date(trip.start) : new Date();
+  const [h,m]=v.split(":").map(Number); const d=new Date(base); d.setHours(h,m,0,0); return d;
+}
+function checkTurnaround(){
+  const a=$("turnAlert"); if(!trip||trip.end||trip.arr.top){ a.classList.remove("show"); return; }
+  const dl=turnDeadline(); if(!dl){ a.classList.remove("show"); return; }
+  const left=(dl-Date.now())/60000;
+  if(left<=0){ if(!a.dataset.fired){ buzz([500,200,500,200,500]); a.dataset.fired=1; } a.textContent=`⛔ 已過最晚折返時間 ${hhmm(dl)}，建議立即折返下山。`; a.classList.add("show"); }
+  else if(left<=20){ a.textContent=`⏰ 距最晚折返時間 ${hhmm(dl)} 剩 ${Math.ceil(left)} 分鐘。`; a.classList.add("show"); }
+  else a.classList.remove("show");
+}
+
+// ================= 行程 =================
+function saveTrip(){ ls.set("mnb_trip",trip); }
+window.toggleTrip = () => {
+  if(!trip || trip.end){
+    if(trip && trip.end && !confirm("要開始新的行程嗎？上一次的計時與軌跡會被清除。")) return;
+    trip={start:Date.now(),end:null,arr:{start:Date.now()},back:null}; rec=[]; ls.set("mnb_rec",rec); saveTrip();
+    $("turnAlert").dataset.fired="";
+    if(watchId===null) toggleGPS();
+    toast("開始計時，祝登山順利！");
+  } else {
+    if(!confirm("確定結束這次行程？")) return;
+    trip.end=Date.now(); if(!trip.back) trip.back=trip.end; saveTrip(); toast("行程已結束，可以匯出 GPX");
+  }
+  renderTrip(); renderList(); drawProfile();
+};
+window.markArr = id => { if(!trip||trip.end) return; trip.arr[id]=Date.now(); saveTrip(); renderTrip(); renderList(); drawProfile(); toast("已記錄抵達時間"); };
+window.markBack = () => { if(!trip||trip.end) return; trip.back=Date.now(); saveTrip(); renderTrip(); };
+
+function paceFactor(){
+  if(!trip) return 1;
+  const done=CP().filter(c=>c.id!=="start"&&trip.arr[c.id]);
+  if(!done.length) return 1;
+  const c=done[done.length-1]; return Math.max(.5,Math.min(2.5,((trip.arr[c.id]-trip.start)/60000)/c.min));
+}
+function renderTrip(){
+  const btn=$("tripBtn");
+  if(trip&&!trip.end){ btn.textContent="⏹️ 結束行程"; btn.classList.add("on"); } else { btn.textContent=trip&&trip.end?"▶️ 開始新行程":"▶️ 開始登山"; btn.classList.remove("on"); }
+  const f=paceFactor();
+  $("paceTxt").textContent = trip ? `你的速度約為參考的 ${Math.round(100/f)}%` : "";
+  $("splitBody").innerHTML = CP().map(c=>{
+    const at=trip&&trip.arr[c.id], act=at?(at-trip.start)/60000:null, diff=act!=null?act-c.min:null;
+    const can=trip&&!trip.end&&!at&&c.id!=="start";
+    return `<tr><td>${c.name}</td><td>${c.min}分</td><td>${at?hhmm(new Date(at)):"—"}</td><td class="${diff==null?'':diff>5?'late':'early'}">${diff==null?"":(diff>0?"+":"")+Math.round(diff)+"分"}</td><td>${can?`<button class="btn ghost sm" style="min-height:34px;padding:2px 8px" onclick="markArr('${c.id}')">抵達</button>`:""}</td></tr>`;
+  }).join("") + `<tr><td>回到登山口</td><td>${REF_DESCENT}分<span class="muted">下山</span></td><td>${trip&&trip.back?hhmm(new Date(trip.back)):"—"}</td><td></td><td>${trip&&!trip.end&&trip.arr.top&&!trip.back?`<button class="btn ghost sm" style="min-height:34px;padding:2px 8px" onclick="markBack()">抵達</button>`:""}</td></tr>`;
+
+  const rest=+$("restMin").value||0, box=$("etaBox");
+  if(trip){
+    const topEta = trip.arr.top ? new Date(trip.arr.top) : new Date(trip.start+CP0[4].min*f*60000);
+    const leave = trip.arr.top ? new Date(Math.max(Date.now(),trip.arr.top+rest*60000)) : new Date(+topEta+rest*60000);
+    const backEta = trip.back ? new Date(trip.back) : new Date(+leave+REF_DESCENT*f*60000);
+    box.innerHTML=`<dt>${trip.arr.top?"登頂時間":"預計登頂"}</dt><dd>${hhmm(topEta)}</dd><dt>${trip.back?"回到登山口":"預計回到登山口"}</dt><dd>${hhmm(backEta)}</dd>`;
+  } else box.innerHTML=`<dt>參考總時間</dt><dd>上山 112 分＋休息＋下山 100 分</dd>`;
+  updateRecInfo();
+}
+function tick(){
+  if(trip){ $("timer").textContent=fmtDur((trip.end||Date.now())-trip.start); }
+  checkTurnaround();
+}
+function updateRecInfo(){
+  let d=0; for(let i=1;i<rec.length;i++) d+=hav(rec[i-1][0],rec[i-1][1],rec[i][0],rec[i][1]);
+  $("trackInfo").textContent = rec.length ? `${rec.length} 個點・約 ${(d/1000).toFixed(2)} km` : "尚無紀錄（開始登山並開啟 GPS 後自動記錄）";
+  $("recInfo").textContent = trip&&!trip.end ? "● 記錄中" : "";
+}
+
+// ================= 時間規劃 =================
+function loadSettings(){
+  const today=new Date(); const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  $("tripDate").value=settings.date||iso(today);
+  if(settings.start) $("startTime").value=settings.start;
+  if(settings.rest!=null) $("restMin").value=settings.rest;
+  if(settings.turnManual && settings.turn) $("turnTime").value=settings.turn;
+}
+window.saveSettings = (turnEdited) => {
+  settings.date=$("tripDate").value; settings.start=$("startTime").value; settings.rest=+$("restMin").value;
+  if(turnEdited){ settings.turn=$("turnTime").value; settings.turnManual=!!settings.turn; }
+  ls.set("mnb_set",settings); renderPlan(); renderTrip();
+};
+function renderPlan(){
+  const ds=$("tripDate").value||"", d=ds?new Date(ds+"T12:00:00"):new Date();
+  const sun=sunTimes(d,24.3676,120.9137);
+  $("sunsetStat").textContent=hhmm(sunTimes(new Date(),24.3676,120.9137).set);
+  const [h,m]=($("startTime").value||"08:00").split(":").map(Number);
+  const st=new Date(d); st.setHours(h,m,0,0);
+  const rest=+$("restMin").value||0;
+  const top=new Date(+st+112*60000), back=new Date(+top+(rest+REF_DESCENT)*60000);
+  const turn=new Date(+sun.set-(REF_DESCENT+30)*60000);
+  if(!settings.turnManual){ $("turnTime").value=hhmm(turn); }
+  $("planBox").innerHTML=`<dt>日出／日落</dt><dd>${hhmm(sun.rise)}／${hhmm(sun.set)}</dd>
+    <dt>預計登頂</dt><dd>${hhmm(top)}</dd><dt>預計回到登山口</dt><dd>${hhmm(back)}</dd>
+    <dt>距日落餘裕</dt><dd class="${(sun.set-back)/60000<60?'late':''}">${fmtMin((sun.set-back)/60000)}</dd>`;
+}
+
+// ================= 地圖 =================
+const LAYERS = {
+  "OpenTopoMap 等高線": {url:"https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", sub:"abc", max:17, attr:'© OpenStreetMap, SRTM | © OpenTopoMap (CC-BY-SA)'},
+  "魯地圖 Taiwan TOPO": {url:"https://tile.happyman.idv.tw/map/moi_osm/{z}/{x}/{y}.png", sub:"", max:18, attr:'© 魯地圖 Rudy Map, OpenStreetMap'},
+  "OpenStreetMap": {url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png", sub:"", max:19, attr:'© OpenStreetMap contributors'},
+};
+function initMap(){
+  if(map){ setTimeout(()=>map.invalidateSize(),50); return; }
+  if(!window.L){ $("map").style.display="none"; $("mapSvg").style.display="block"; drawMapSvg(); return; }
+  map=L.map("map",{zoomControl:true,attributionControl:true});
+  const base={}; let first=null;
+  for(const [n,c] of Object.entries(LAYERS)){ base[n]=L.tileLayer(c.url,{subdomains:c.sub||"abc",maxZoom:19,maxNativeZoom:c.max,attribution:c.attr}); first=first||base[n]; }
+  first.addTo(map); L.control.layers(base,null,{collapsed:true}).addTo(map); L.control.scale({imperial:false}).addTo(map);
+  L.polyline(T().full,{color:"#1f5d45",weight:5,opacity:.85}).addTo(map);
+  updateMapMarkers(); fitRoute(); updateMapYou();
+  setTimeout(()=>map.invalidateSize(),50);
+}
+function updateMapMarkers(){
+  if(!map){ drawMapSvg(); return; }
+  cpMarkers.forEach(m=>m.remove()); cpMarkers=[];
+  CP().forEach((c,i)=>{
+    const ic=L.divIcon({className:"",html:`<div class="cp-ic" style="${i===selIdx?'background:#ef7d22':''}">${i+1}</div>`,iconSize:[24,24],iconAnchor:[12,12]});
+    cpMarkers.push(L.marker([c.lat,c.lng],{icon:ic}).addTo(map).bindPopup(`<b>${i+1}. ${c.name}</b><br>${c.ele} m・單程 ${c.km} km${c.est?"<br><i>推估位置</i>":""}`).on("click",()=>selectWp(i)));
+  });
+}
+function updateMapYou(){
+  if(!lastFix) return;
+  const {latitude:la,longitude:lo,accuracy}=lastFix.coords;
+  if(map){
+    if(!youMk){ youMk=L.marker([la,lo],{icon:L.divIcon({className:"",html:'<div class="you-dot"></div>',iconSize:[18,18],iconAnchor:[9,9]}),zIndexOffset:1000}).addTo(map); accCircle=L.circle([la,lo],{radius:accuracy,color:"#ef7d22",weight:1,fillOpacity:.1}).addTo(map); }
+    else { youMk.setLatLng([la,lo]); accCircle.setLatLng([la,lo]).setRadius(accuracy); }
+  } else drawMapSvg();
+}
+window.centerMe = () => { if(!lastFix){ toast("請先開啟 GPS 定位"); return; } if(map) map.setView([lastFix.coords.latitude,lastFix.coords.longitude],16); };
+window.fitRoute = () => { if(map) map.fitBounds(T().full,{padding:[20,20]}); };
+function drawMapSvg(){
+  const svg=$("mapSvg"); if(svg.style.display!=="block") return;
+  const W=svg.clientWidth||340,H=svg.clientHeight||400, f=T().full;
+  const lats=f.map(p=>p[0]),lngs=f.map(p=>p[1]), cosL=Math.cos(rad(24.37));
+  const minLa=Math.min(...lats),maxLa=Math.max(...lats),minLo=Math.min(...lngs),maxLo=Math.max(...lngs);
+  const sx=(maxLo-minLo)*cosL, sy=maxLa-minLa, k=Math.min((W-40)/sx,(H-40)/sy);
+  const X=lo=>20+(lo-minLo)*cosL*k+((W-40)-sx*k)/2, Y=la=>20+(maxLa-la)*k+((H-40)-sy*k)/2;
+  let g=`<polyline points="${f.map(p=>X(p[1]).toFixed(1)+","+Y(p[0]).toFixed(1)).join(" ")}" fill="none" style="stroke:var(--pri)" stroke-width="4" stroke-linejoin="round" opacity=".85"/>`;
+  CP().forEach((c,i)=>{ g+=`<circle cx="${X(c.lng)}" cy="${Y(c.lat)}" r="11" fill="${i===selIdx?'#ef7d22':'#1f5d45'}" stroke="#fff" stroke-width="2"/><text x="${X(c.lng)}" y="${Y(c.lat)+4}" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">${i+1}</text>`; });
+  if(lastFix){ const {latitude:la,longitude:lo}=lastFix.coords; g+=`<circle cx="${X(lo)}" cy="${Y(la)}" r="8" fill="#ef7d22" stroke="#fff" stroke-width="3"/>`; }
+  const m200=200/111320*k; g+=`<g transform="translate(16,${H-18})"><line x1="0" x2="${m200}" y1="0" y2="0" stroke="currentColor" stroke-width="2"/><text x="${m200+6}" y="4" font-size="11" fill="currentColor">200 m</text></g><text x="${W-18}" y="26" font-size="13" font-weight="700" text-anchor="middle" fill="currentColor">N↑</text>`;
+  g+=`<text x="16" y="22" font-size="11" fill="currentColor" opacity=".7">底圖未載入，顯示簡易軌跡圖</text>`;
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.style.color="var(--ink)"; svg.innerHTML=g;
+}
+// 圖磚預先下載
+function lon2x(lo,z){ return Math.floor((lo+180)/360*2**z); }
+function lat2y(la,z){ const r=rad(la); return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*2**z); }
+window.prefetchTiles = async () => {
+  if(!("caches" in window)){ $("dlStatus").textContent="此瀏覽器不支援離線快取。"; return; }
+  const f=T().full, la=f.map(p=>p[0]), lo=f.map(p=>p[1]), padD=.006;
+  const bb=[Math.min(...la)-padD,Math.max(...la)+padD,Math.min(...lo)-padD,Math.max(...lo)+padD];
+  const urls=[];
+  for(const key of ["OpenTopoMap 等高線","魯地圖 Taiwan TOPO"]){
+    const c=LAYERS[key];
+    for(let z=12;z<=Math.min(17,c.max);z++){
+      for(let x=lon2x(bb[2],z);x<=lon2x(bb[3],z);x++) for(let y=lat2y(bb[1],z);y<=lat2y(bb[0],z);y++){
+        const s=c.sub?c.sub[Math.abs(x+y)%c.sub.length]:"";
+        urls.push(c.url.replace("{s}",s).replace("{z}",z).replace("{x}",x).replace("{y}",y));
+      }
+    }
+  }
+  urls.push("https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js","https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css");
+  const cache=await caches.open("mnb-tiles"); let ok=0,fail=0; $("dlBtn").disabled=true;
+  for(let i=0;i<urls.length;i+=6){
+    await Promise.all(urls.slice(i,i+6).map(async u=>{
+      try{ if(await cache.match(u)){ok++;return;} const r=await fetch(u,{mode:"no-cors"}); await cache.put(u,r); ok++; }catch(e){ fail++; }
+    }));
+    $("dlStatus").textContent=`下載中 ${ok+fail}／${urls.length}…`;
+  }
+  $("dlBtn").disabled=false;
+  $("dlStatus").textContent = fail ? `完成 ${ok} 張，${fail} 張失敗（可再按一次重試）` : `✅ 已存好 ${ok} 個檔案，山上可離線查看底圖（縮放 12～17 級）`;
+};
+
+// ================= 軌跡匯出 =================
+window.exportGpx = () => {
+  if(!rec.length){ toast("還沒有軌跡紀錄"); return; }
+  const pts=rec.map(p=>`<trkpt lat="${p[0]}" lon="${p[1]}">${p[2]!=null?`<ele>${p[2]}</ele>`:""}<time>${new Date(p[3]).toISOString()}</time></trkpt>`).join("\n");
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="manabang-trail" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>馬那邦山 ${new Date(rec[0][3]).toLocaleDateString("zh-TW")}</name><trkseg>\n${pts}\n</trkseg></trk></gpx>`;
+  const name=`manabang-${new Date(rec[0][3]).toISOString().slice(0,10)}.gpx`;
+  const file=new File([xml],name,{type:"application/gpx+xml"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){ navigator.share({files:[file],title:name}).catch(()=>{}); return; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+};
+window.clearRec = () => { if(rec.length && !confirm("確定刪除目前的軌跡紀錄？")) return; rec=[]; ls.set("mnb_rec",rec); updateRecInfo(); };
+
+// ================= 座標／SOS =================
+function locText(){
+  if(!lastFix) return "（尚未取得 GPS 座標，請先開啟定位）";
+  const {latitude:la,longitude:lo,altitude,accuracy}=lastFix.coords, near=CP().map(c=>[c,hav(la,lo,c.lat,c.lng)]).sort((a,b)=>a[1]-b[1])[0];
+  return `我在苗栗泰安 馬那邦山（珠湖登山口線）\n座標：${la.toFixed(6)}, ${lo.toFixed(6)}（±${Math.round(accuracy)} m）\n${altitude!=null?"GPS 海拔約 "+Math.round(altitude)+" m\n":""}最近檢查點：${near[0].name}（約 ${fmtD(near[1])}）\n時間：${new Date(lastFix.timestamp).toLocaleString("zh-TW",{hour12:false})}\nhttps://maps.google.com/?q=${la.toFixed(6)},${lo.toFixed(6)}`;
+}
+window.copyLocation = async (fromSos) => {
+  const txt=locText();
+  try{ await navigator.clipboard.writeText(txt); toast("已複製，可貼到 LINE 或簡訊"); }
+  catch(e){ openSOS(); const ta=$("sosText"); ta.focus(); ta.select(); toast("請長按文字框手動複製"); }
+};
+window.openSOS = () => { $("sosText").value=locText(); $("sosModal").classList.add("show"); };
+
+// ================= 螢幕常亮 =================
+window.toggleWake = async () => {
+  const b=$("wakeBtn");
+  if(wakeLock||wakeWanted){ wakeWanted=false; if(wakeLock) await wakeLock.release().catch(()=>{}); wakeLock=null; b.textContent="🔆 常亮：關"; return; }
+  if(!("wakeLock" in navigator)){ toast("此瀏覽器不支援螢幕常亮"); return; }
+  try{ wakeLock=await navigator.wakeLock.request("screen"); wakeWanted=true; b.textContent="🔆 常亮：開"; wakeLock.addEventListener("release",()=>{ wakeLock=null; }); }
+  catch(e){ toast("無法開啟螢幕常亮"); }
+};
+document.addEventListener("visibilitychange", async ()=>{
+  if(document.visibilityState==="visible" && wakeWanted && !wakeLock){ try{ wakeLock=await navigator.wakeLock.request("screen"); }catch(e){} }
+});
+
+// ================= 裝備 =================
+function renderGear(){
+  let cat="", n=0;
+  $("gearList").innerHTML=GEAR.map(([c,t],i)=>{ const ck=!!gearCk[i]; if(ck)n++;
+    const h=c!==cat?`<div class="muted" style="margin-top:${cat?12:0}px;font-weight:600">${c}</div>`:""; cat=c;
+    return h+`<label class="gear ${ck?'ck':''}"><input type="checkbox" ${ck?'checked':''} onchange="ckGear(${i},this.checked)"><span>${t}</span></label>`; }).join("");
+  $("gearCount").textContent=`${n}／${GEAR.length}`; $("gearProg").style.width=(n/GEAR.length*100)+"%";
+}
+window.ckGear=(i,v)=>{ gearCk[i]=v; ls.set("mnb_gear",gearCk); renderGear(); };
+window.resetGear=()=>{ gearCk={}; ls.set("mnb_gear",gearCk); renderGear(); };
+
+// ================= 自訂 GPX =================
+function parseGpx(text){
+  const doc=new DOMParser().parseFromString(text,"application/xml");
+  let ns=[...doc.getElementsByTagName("trkpt")]; if(!ns.length) ns=[...doc.getElementsByTagName("rtept")];
+  const p=ns.map(n=>[+n.getAttribute("lat"),+n.getAttribute("lon"),n.getElementsByTagName("ele")[0]?+n.getElementsByTagName("ele")[0].textContent:NaN]).filter(q=>isFinite(q[0])&&isFinite(q[1]));
+  if(p.length<2) throw new Error("找不到軌跡點");
+  let top=0; p.forEach((q,i)=>{ if((q[2]||0)>(p[top][2]||0)) top=i; });
+  let d=0,lastE=p.find(q=>isFinite(q[2]))?.[2]??0; const asc=[];
+  for(let i=0;i<=top;i++){ if(i) d+=hav(p[i-1][0],p[i-1][1],p[i][0],p[i][1]); if(isFinite(p[i][2])) lastE=p[i][2]; asc.push([p[i][0],p[i][1],Math.round(lastE),d/1000]); }
+  const step=Math.max(1,Math.floor(p.length/600));
+  return {asc:asc.filter((_,i)=>i%Math.max(1,Math.floor(asc.length/400))===0||i===asc.length-1), full:p.filter((_,i)=>i%step===0).map(q=>[q[0],q[1]])};
+}
+window.loadGpxFile = f => { if(!f) return; f.text().then(t=>{ try{ custom=parseGpx(t); ls.set("mnb_custom",custom); toast("已改用你載入的 GPX"); refreshAll(); }catch(e){ toast("GPX 解析失敗："+e.message); } }); };
+window.clearCustomGpx = () => { custom=null; ls.set("mnb_custom",null); toast("已還原內建軌跡"); refreshAll(); };
+function refreshAll(){ drawHero(); drawProfile(); renderList(); if(map){ map.remove(); map=null; youMk=null; cpMarkers=[]; } }
+
+// ================= 啟動 =================
+applyTheme(); loadSettings(); renderPlan(); drawHero(); renderList(); renderGear(); renderTrip(); drawProfile();
+new ResizeObserver(()=>drawProfile()).observe($("profile"));
+setInterval(tick,1000); tick();
+if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
